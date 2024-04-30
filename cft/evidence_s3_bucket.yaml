@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to Create forensic s3 bucket
+Parameters:
+    BucketEnvironment:
+      Type: String
+      AllowedValues:
+        - prod
+        - test
+        - dev
+        - UAT
+    Contact:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Consumer:
+      Type: String
+      Description: Enter the Mandatory tag 
+    
+    Application:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    DataClassification:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    Division:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Costcenter:
+      Type: String
+      Description: Enter the Mandatory tag    
+    Environment:
+      Type: String
+      Description: Enter the Mandatory tag
+      Default: Production
+
+Resources:
+  evidencebucket:
+    Type: AWS::S3::Bucket
+    Properties:
+     BucketName: 
+      Fn::Sub: 'forensic-evidence-collection-${Environment}'
+     BucketEncryption:
+      ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+     Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment
