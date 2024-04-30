@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to Create an IAM Role
+Parameters:
+    DevelopmentIncidentResponseAccount:
+      Type: String
+      Description: Enter the account number of the development incident response account
+    
+    TestIncidentResponseAccount:
+      Type: String
+      Description: Enter the account number of the test incident response account
+
+    ProductionIncidentResponseAccount:
+      Type: String
+      Description: Enter the account number of the production incident response account
+
+
+    Contact:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Consumer:
+      Type: String
+      Description: Enter the Mandatory tag 
+    
+    Application:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    DataClassification:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    Division:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Costcenter:
+      Type: String
+      Description: Enter the Mandatory tag    
+    Environment:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+
+Resources:
+  KMSPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: KMS Custom Policy for Lambda assume role
+      ManagedPolicyName: KMSPolicy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:ListRoles
+              - iam:ListUsers
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - kms:ReEncryptTo
+              - kms:DescribeKey
+              - kms:ReEncryptFrom
+            Resource: '*'
+  SnapshotPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Policy required for forenisc workflow , to take snapshot of compromised instance
+      ManagedPolicyName: Snapshot-Policy-Incident-Response
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:CopySnapshot
+              - ec2:ModifySnapshotAttribute
+              - ec2:CreateSnapshots
+              - ec2:DescribeVolumes
+              - ec2:DescribeSnapshots
+              - ec2:DescribeInstances
+            Resource: '*'
+  
+  Compromisedinstancerole:
+    Type: AWS::IAM::Role
+    DependsOn:
+      - KMSPolicy
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 
+                - Fn::Sub: 'arn:aws-cn:iam::${DevelopmentIncidentResponseAccount}:root'
+                - Fn::Sub: 'arn:aws-cn:iam::${TestIncidentResponseAccount}:root'
+                - Fn::Sub: 'arn:aws-cn:iam::${ProductionIncidentResponseAccount}:root'
+            Action:
+              - 'sts:AssumeRole'
+      Description: Lambda Assume Role for Incident Response Account
+      ManagedPolicyArns: 
+        - Ref: KMSPolicy
+        - Ref: SnapshotPolicy
+      RoleName: "LambdaAssumeRole"
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment
+        
