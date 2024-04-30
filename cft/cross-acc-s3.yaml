@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to Create Cross Account S3 Role for IR Account
+Parameters:
+    Incidentresponseaccount:
+      Type: String
+      Description: Please enter the account number of the incident response account with whom you want to build the trust relationship
+    BucketEnvironment:
+      Type: String
+      AllowedValues:
+        - prod
+        - test
+        - dev
+        - UAT
+    Contact:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Consumer:
+      Type: String
+      Description: Enter the Mandatory tag 
+    
+    Application:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    DataClassification:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    Division:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Costcenter:
+      Type: String
+      Description: Enter the Mandatory tag    
+    Environment:
+      Type: String
+      Description: Enter the Mandatory tag
+      Default: Production
+
+
+Resources:
+  s3custompolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Cross Account S3 Policy for IR account
+      ManagedPolicyName: 
+        Fn::Sub: Crossaccount-S3-IR-Policy-${BucketEnvironment}
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:ListAllMyBuckets
+              - s3:ListBucket
+            Resource: '*'
+  forensics3role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 
+                Fn::Sub: 'arn:aws-cn:iam::${Incidentresponseaccount}:root'
+            Action:
+              - 'sts:AssumeRole'
+      Description: Cross Account S3 Role to access forensic account's S3 bucket
+      ManagedPolicyArns: 
+        - Ref: s3custompolicy
+      RoleName: S3CrossAccountRole
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment
