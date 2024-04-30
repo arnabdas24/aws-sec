@@ -1,0 +1,748 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda  Creation
+Parameters:
+
+      
+  LambdaRole:
+    Type: String
+    Description: Specify the ARN of role which  Lambda is going to use
+
+  S3Bucket:
+    Type: String
+    Description: S3 bucket Name where Lambda is stored
+
+  S3BucketSubdirectory:
+    Type: String
+    Description: Custom Path where lambda codes are stored
+
+  KMSKeyDetails:
+    Type: String
+    Description: Specify the KMS Key Details which will be used for encryption
+
+  AZDetails:
+    Type: String
+    Description: Specify the AZ where volumes and instance will be created
+  
+
+  SubnetDetails:
+    Type: String
+    Description: Specify the Subnet where EC2 Instance will be created , must belong to the same az where volume and ec2 are created
+
+
+  EvidenceBucketName:
+    Type: String
+    Description: Specify the evidence s3 bucket name where dd and log files will be stored
+
+  EC2InstanceProfile:
+    Type: String
+    Description: Name of the EC2 Instance role which will be attached with the instance
+
+  InstanceType:
+    Type: String
+    Description: Type of the instance 
+  
+  IRS3Bucket:
+    Type: String
+    Description: Name of the IR account's S3 bucket where dc3dd rpm,forensic script and other files are stored
+
+  SSHKeyPair:
+    Type: String
+    Description: SSH Key Pair used to login to EC2 Instance
+
+  ForeniscAccount:
+    Type: String
+    Description: Account Number of the Forensic Account
+
+  SecurityGroup:
+    Type: String
+    Description: Security group id
+
+  SNSTopicARN:
+    Type: String
+    Description: SNS Topic ARN which will be used for notifications
+
+  VPCID:
+    Type: String
+    Description: VPC Id where instance will be created
+
+  AMIURL:
+    Type: String
+    Description: GIO Provided URL of the AMI Ids
+
+
+  VolumeRetentionHours:
+    Type: String
+    Description: Specify the Number of hours you want to keep the forensic volume
+
+  
+  SnapshotRetetionDays:
+    Type: String
+    Description: Specify the Number of days you want to keep the compromised account's snapshot
+
+  Contact:
+      Type: String
+      Description: Enter the Mandatory tag 
+  Consumer:
+      Type: String
+      Description: Enter the Mandatory tag 
+    
+  Application:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+  DataClassification:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+  Division:
+      Type: String
+      Description: Enter the Mandatory tag 
+  Costcenter:
+      Type: String
+      Description: Enter the Mandatory tag    
+  Environment:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+Resources:
+  Lambda1:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-01-PreChecks-Volume-Status
+      Description: To check if Compromised instance's volumes are encrypted with CMK and No of Volumes not more than 10
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-01-PreChecks-Volume-Status.zip'
+      Environment:
+        Variables:
+          NO_OF_VOLUMES: 10
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda2:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-02-Take-Snapshots-Compromised-Volumes
+      Description: To take snapshots of all attached volumes of compromised instance
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-02-Take-Snapshots-Compromised-Volumes.zip'
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda3:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-03-Compromised-Volumes-Snapshot-Status
+      Description: Check snapshot completetion status of compromised volumes
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-03-Compromised-Volumes-Snapshot-Status.zip'
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda4:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-04-Copy-Snapshots-IR-Account
+      Description: Copy the compromised volume's snapshots to Incident Response Account
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-04-Copy-Snapshots-IR-Account.zip'
+      Environment:
+        Variables:
+          ACCOUNT_DETAILS: 
+            Ref: "AWS::AccountId"
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda5:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-05-Check-Snapshots-Copy-Status-to-IR-Account
+      Description: Check the snapshot copy status in IR account
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-05-Check-Snapshots-Copy-Status-to-IR-Account.zip'
+      Environment:
+        Variables:
+          ACCOUNT_DETAILS: 
+            Ref: AWS::AccountId
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda6:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-06-Encrypt-Snapshot-With-Custom-KMS
+      Description: Encrypt the snapshot with Customer Managed KMS Keys
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-06-Encrypt-Snapshot-With-Custom-KMS.zip'
+      Environment:
+        Variables:
+          KMS_KEY: 
+            Ref: KMSKeyDetails
+          SOURCE_REGION:
+            Ref: AWS::Region
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda7:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-07-Snapshot-Encryption-Status
+      Description: Check the snapshot completion status of encrypted snapshots
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-07-Snapshot-Encryption-Status.zip'
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda8:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-08-Create-Volume-from-Snapshots
+      Description: Check the snapshot completion status of encrypted snapshots
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-08-Create-Volume-from-Snapshots.zip'
+      Environment:
+        Variables:
+          KMS_KEY: 
+            Ref: KMSKeyDetails
+          SUPPORTED_AZS:
+            Ref: AZDetails
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+
+  Lambda9:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-09-Create-EC2-Instance
+      Description: Create the EC2 Instance required for forensic image creation
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/Prod_IR-09-Create-EC2-Instance.zip'
+      VpcConfig:
+        SecurityGroupIds:
+          - Ref: SecurityGroup
+        SubnetIds:
+          - Ref: SubnetDetails
+      Environment:
+        Variables:
+          EC2_SUBNET:
+            Ref: SubnetDetails
+          EVIDENCE_BUCKET:
+            Ref: EvidenceBucketName
+          INSTANCE_PROFILE_NAME:
+            Ref: EC2InstanceProfile
+          INSTANCE_TYPE:
+            Ref: InstanceType
+          IR_BUCKET:
+            Ref: IRS3Bucket
+          KEYPAIR:
+            Ref: SSHKeyPair
+          S3EVIDENCE_ACCOUNT:
+            Ref: ForeniscAccount
+          SECURITY_GROUP:
+            Ref: SecurityGroup
+          SNS_NOTIFICATION_ARN:
+            Ref: SNSTopicARN
+          VPC_ID:
+            Ref: VPCID
+          AMI_URL:
+            Ref: AMIURL
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  Lambda10:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-10-Check-Instance-Status
+      Description: To check if Instance status is running
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-10-Check-Instance-Status.zip'
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+
+  Lambda11:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-11-Attach-Volume
+      Description: Attach the volumes to EC2 Instances
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-11-Attach-Volume.zip'
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+
+  Lambda12:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-12-Send-IR-Workflow-Output-to-SNS
+      Description: Attach the volumes to EC2 Instances
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-12-Send-IR-Workflow-Output-to-SNS.zip'
+      Environment:
+        Variables:
+          SNS_ARN: 
+            Ref: SNSTopicARN
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+
+  AutomatedVolumeDeletion:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-Automated-Volume-Deletion
+      Description: Automated Volume Deletion of Incident Response account
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-Automated-Volume-Deletion.zip'
+      Environment:
+        Variables:
+          VOLUME_RETENTION_HOURS: 
+            Ref: VolumeRetentionHours
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+
+  
+  VolumeDeletionRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "Automated Volume Deletion Rule"
+      ScheduleExpression: "cron(0 10 * * ? *)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutomatedVolumeDeletion"
+              - "Arn"
+          Id: "LATEST"
+  VolumeDeletionLambdaInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: AutomatedVolumeDeletion
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: 
+        Fn::GetAtt:
+            - VolumeDeletionRule
+            - Arn
+
+
+
+  SnapshotDeletion:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: IR-Automated-Snapshot-Deletion
+      Description: Automated Snapshot Deletion of Incident Response account
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Role:
+        Ref: LambdaRole
+      Timeout: 600
+      Code:
+        S3Bucket:
+          Ref: S3Bucket
+        S3Key: 
+          Fn::Sub: '${S3BucketSubdirectory}/IR-Automated-Snapshot-Deletion.zip'
+      Environment:
+        Variables:
+          SNAPSHOT_RETENTION_DAYS: 
+            Ref: SnapshotRetetionDays
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment 
+  
+  SnapshotDeletionRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "Automated Snapshot Deletion Rule"
+      ScheduleExpression: "cron(0 10 * * ? *)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "SnapshotDeletion"
+              - "Arn"
+          Id: "LATEST"
+  SnapshotDeletionLambdaInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: SnapshotDeletion
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: 
+        Fn::GetAtt:
+            - SnapshotDeletionRule
+            - Arn
