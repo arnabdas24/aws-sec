@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to Create an IAM Role
+Parameters:
+    ForensicAccount:
+      Type: String
+      Description: Specify the Account number of the forensic account
+
+
+    Contact:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Consumer:
+      Type: String
+      Description: Enter the Mandatory tag 
+    
+    Application:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    DataClassification:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+    Division:
+      Type: String
+      Description: Enter the Mandatory tag 
+    Costcenter:
+      Type: String
+      Description: Enter the Mandatory tag    
+    Environment:
+      Type: String
+      Description: Enter the Mandatory tag 
+
+
+     
+Resources:
+  kmspolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: KMS Custom Policy for EC2 Instance Role
+      ManagedPolicyName: IR-EC2-KMS-Policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - kms:ImportKeyMaterial
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - kms:ReEncryptTo
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:DescribeKey
+              - kms:CreateGrant
+              - kms:ReEncryptFrom
+            Resource: '*'
+
+  snspolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: SNS Custom Policy for EC2 Instance Role
+      ManagedPolicyName: IR-EC2-SNS-Policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sns:Publish
+            Resource: '*'
+
+  s3bucketpolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: S3 Custom Policy for EC2 Instance Role
+      ManagedPolicyName: IR-EC2-S3-Bucket-Policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:ListAllMyBuckets
+              - s3:ListBucket
+            Resource: '*'
+
+  EC2Policy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Custom Policy to Describe Volumes
+      ManagedPolicyName: IR-EC2-Describe-Volumes-Policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:DescribeVolumes
+            Resource: '*'
+
+  CloudwatchLogGroup:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Custom Policy to Push Forensic instance's logs to cloudwatch
+      ManagedPolicyName: IR-EC2-LogGroup-Policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:CreateLogGroup
+              - logs:PutLogEvents
+            Resource: '*'
+
+
+  CrossAccounts3role:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Assume role policy for s3 bucket in forensic account
+      ManagedPolicyName: IR-EC2-Forenisc-Account-S3-Policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - Fn::Sub: 'arn:aws-cn:iam::${ForensicAccount}:role/S3CrossAccountRole'
+  
+
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com.cn
+            Action:
+              - 'sts:AssumeRole'
+      Description: EC2 Instance role for Incident response account
+      ManagedPolicyArns: 
+        - Ref: kmspolicy
+        - Ref: snspolicy
+        - Ref: CrossAccounts3role
+        - Ref: s3bucketpolicy
+        - Ref: EC2Policy
+        - Ref: CloudwatchLogGroup
+      RoleName: EC2-Instance-Role-Incident-Response
+      Tags:
+        - Key: Contact
+          Value:
+            Ref: Contact
+        - Key: Consumer
+          Value:
+            Ref: Consumer        
+        - Key: Application
+          Value:
+            Ref: Application        
+        - Key: DataClassification
+          Value:
+            Ref: DataClassification        
+        - Key: Division
+          Value:
+            Ref: Division        
+        - Key: Costcenter
+          Value:
+            Ref: Costcenter
+        - Key: Environment
+          Value:
+            Ref: Environment
+  MyInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - Ref: EC2InstanceRole
+      InstanceProfileName:
+          Ref: EC2InstanceRole
