@@ -1,0 +1,13 @@
+import json
+from pprint import pp
+import os
+import boto3
+sns_topic_arn = os.environ['SNS_ARN']
+def lambda_handler(event, context):
+    data=str(pp(event))
+    sns_client = boto3.client('sns')
+    success_result = sns_client.publish(
+            TargetArn=sns_topic_arn,
+            Message= json.dumps(event, indent=4, sort_keys=False),
+            Subject= f"Step Function Output Details for Request:-{event['ticket_details']}" 
+            )
